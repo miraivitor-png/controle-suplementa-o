@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Lançamento Diário</title>
+
+<!-- PWA: Android / Chrome -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a5c38">
+<meta name="mobile-web-app-capable" content="yes">
+
+<!-- PWA: iOS / Safari -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lançamento">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  :root{--verde:#1a5c38;--verde-light:#e6f4ec;--verde-mid:#b2d8c3;--verde-dark:#0f3d25;--laranja:#b85c00;--laranja-light:#fef3e6;--vermelho:#a32d2d;--vermelho-light:#fcebeb;--bg:#f5f5f2;--card:#ffffff;--text:#1a1a1a;--text2:#666660;--border:#e0deda;--radius:10px;}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  .statusbar{background:var(--verde-dark);height:env(safe-area-inset-top,6px);min-height:6px;}
+  .header{background:var(--verde);color:#fff;padding:16px 20px 20px;}
+  .header h1{font-size:18px;font-weight:600;}
+  .header p{font-size:13px;opacity:0.75;margin-top:3px;}
+  .btn-back{background:none;border:none;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:0;margin-bottom:8px;opacity:0.85;font-family:inherit;}
+  .screen{display:none;flex-direction:column;min-height:calc(100vh - 6px);}
+  .screen.active{display:flex;}
+  .body{flex:1;padding:16px;overflow-y:auto;}
+  .search-box{position:relative;margin-bottom:12px;}
+  .search-box input{width:100%;padding:11px 14px 11px 38px;border:0.5px solid var(--border);border-radius:var(--radius);font-size:15px;background:var(--card);color:var(--text);font-family:inherit;}
+  .search-box input:focus{outline:none;border-color:var(--verde);}
+  .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text2);font-size:16px;pointer-events:none;}
+  .section-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;}
+  .pasto-list{display:flex;flex-direction:column;gap:5px;}
+  .pasto-item{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:background 0.12s;}
+  .pasto-item:active{background:#f0f7f3;}
+  .pi-left{display:flex;align-items:center;gap:10px;}
+  .pasto-dot{width:8px;height:8px;border-radius:50%;background:var(--verde);flex-shrink:0;}
+  .pasto-nome{font-size:16px;font-weight:500;}
+  .pasto-chevron{color:var(--text2);font-size:18px;}
+  .pasto-card{background:var(--verde-light);border:0.5px solid var(--verde-mid);border-radius:var(--radius);padding:13px 16px;margin-bottom:18px;display:flex;align-items:center;gap:12px;}
+  .pasto-card-icon{font-size:22px;color:var(--verde);}
+  .pasto-card-nome{font-size:16px;font-weight:600;color:var(--verde);}
+  .pasto-card-sub{font-size:12px;color:#3a7a55;margin-top:2px;}
+  .form-group{margin-bottom:14px;}
+  .form-label{font-size:12px;color:var(--text2);font-weight:500;margin-bottom:5px;display:block;}
+  .form-control{width:100%;padding:12px 14px;border:0.5px solid var(--border);border-radius:var(--radius);font-size:15px;background:var(--card);color:var(--text);font-family:inherit;appearance:none;}
+  .form-control:focus{outline:none;border-color:var(--verde);box-shadow:0 0 0 3px rgba(26,92,56,0.10);}
+  .form-control[readonly]{background:#f8f8f6;color:var(--text2);}
+  .btn-primary{width:100%;padding:14px;background:var(--verde);color:#fff;border:none;border-radius:var(--radius);font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:6px;transition:opacity 0.15s;}
+  .btn-primary:active{opacity:0.88;}
+  .btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
+  .btn-danger{width:100%;padding:12px;background:var(--vermelho-light);color:var(--vermelho);border:0.5px solid #f09595;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;}
+  .success-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center;}
+  .success-icon{width:64px;height:64px;border-radius:50%;background:var(--verde-light);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--verde);margin-bottom:18px;}
+  .success-title{font-size:20px;font-weight:600;margin-bottom:8px;}
+  .success-sub{font-size:14px;color:var(--text2);margin-bottom:28px;line-height:1.6;}
+  .loading{text-align:center;padding:32px;color:var(--text2);font-size:14px;}
+  .error-msg{background:var(--laranja-light);border:0.5px solid #f5c070;border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--laranja);margin-bottom:12px;display:none;}
+  .tab-bar{display:flex;border-top:0.5px solid var(--border);background:var(--card);}
+  .tab-btn{flex:1;padding:10px 0 8px;border:none;background:none;font-size:10px;color:var(--text2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:inherit;}
+  .tab-btn svg{width:22px;height:22px;}
+  .tab-btn.active{color:var(--verde);}
+
+  /* Resumo */
+  .resumo-item{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .ri-pasto{font-size:14px;font-weight:500;}
+  .ri-lote{font-size:12px;color:var(--text2);margin-top:2px;}
+  .ri-kg{font-size:16px;font-weight:600;color:var(--verde);}
+  .ri-hora{font-size:11px;color:var(--text2);text-align:right;margin-top:2px;}
+  .ri-right{display:flex;align-items:center;gap:10px;}
+  .btn-edit{background:none;border:0.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text2);cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .btn-edit:active{background:var(--bg);}
+
+  .edit-banner{background:#fff8e6;border:0.5px solid #f5c070;border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--laranja);font-weight:500;display:none;}
+
+  .empty{text-align:center;padding:40px 0;color:var(--text2);font-size:14px;}
+  .empty-icon{font-size:36px;margin-bottom:10px;opacity:0.3;}
+
+  /* Filtro resumo */
+  .resumo-filtro{display:flex;gap:8px;margin-bottom:14px;}
+  .resumo-filtro input,.resumo-filtro select{flex:1;padding:9px 12px;border:0.5px solid var(--border);border-radius:var(--radius);font-size:13px;background:var(--card);color:var(--text);font-family:inherit;}
+</style>
+</head>
+<body>
+<div class="statusbar"></div>
+
+<!-- TELA: PASTOS -->
+<div id="screen-pastos" class="screen active">
+  <div class="header">
+    <h1>Lançamento diário</h1>
+    <p id="header-date"></p>
+  </div>
+  <div class="body">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="search" id="busca-pasto" placeholder="Buscar pasto..." oninput="filtrarPastos()" />
+    </div>
+    <p class="section-label">Selecione o pasto</p>
+    <div class="pasto-list" id="pasto-list"><div class="loading">Carregando pastos...</div></div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Lançar
+    </button>
+    <button class="tab-btn" onclick="showResumo()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Lançamentos
+    </button>
+  </div>
+</div>
+
+<!-- TELA: LANÇAMENTO / EDIÇÃO -->
+<div id="screen-lancamento" class="screen">
+  <div class="header">
+    <button class="btn-back" id="btn-back-lanc" onclick="voltarDeLancamento()">← Voltar</button>
+    <h1 id="lanc-titulo">Novo lançamento</h1>
+  </div>
+  <div class="body">
+    <div class="edit-banner" id="edit-banner">✏️ Editando lançamento</div>
+    <div class="pasto-card">
+      <span class="pasto-card-icon">📍</span>
+      <div>
+        <div class="pasto-card-nome" id="card-pasto-nome"></div>
+        <div class="pasto-card-sub" id="card-lote-info"></div>
+      </div>
+    </div>
+    <div class="error-msg" id="error-msg"></div>
+    <div class="form-group">
+      <label class="form-label">Data</label>
+      <input type="date" class="form-control" id="input-data" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Lote</label>
+      <select class="form-control" id="input-lote" onchange="atualizarProduto()">
+        <option value="">Selecione o lote...</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Produto</label>
+      <input type="text" class="form-control" id="input-produto" readonly />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Quantidade (kg)</label>
+      <input type="number" class="form-control" id="input-kg" placeholder="0" min="0" step="0.5" inputmode="decimal" />
+    </div>
+    <button class="btn-primary" id="btn-confirmar" onclick="confirmarLancamento()">Confirmar lançamento</button>
+    <button class="btn-danger" id="btn-excluir" style="display:none" onclick="excluirLancamento()">Excluir lançamento</button>
+  </div>
+</div>
+
+<!-- TELA: SUCESSO -->
+<div id="screen-sucesso" class="screen">
+  <div class="header"><h1 id="sucesso-header">Lançamento diário</h1></div>
+  <div class="success-wrap">
+    <div class="success-icon" id="sucesso-icone">✓</div>
+    <div class="success-title" id="sucesso-titulo">Lançado!</div>
+    <div class="success-sub" id="sucesso-detalhe"></div>
+    <button class="btn-primary" style="max-width:280px" onclick="showPastos()">Novo lançamento</button>
+  </div>
+</div>
+
+<!-- TELA: LANÇAMENTOS -->
+<div id="screen-resumo" class="screen">
+  <div class="header">
+    <h1>Lançamentos</h1>
+    <p id="resumo-date"></p>
+  </div>
+  <div class="body">
+    <div class="resumo-filtro">
+      <input type="date" id="fil-data-resumo" onchange="renderResumo()" />
+      <select id="fil-lote-resumo" onchange="renderResumo()">
+        <option value="">Todos os lotes</option>
+      </select>
+    </div>
+    <div id="resumo-lista"></div>
+  </div>
+  <div class="tab-bar">
+    <button class="tab-btn" onclick="showPastos()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Lançar
+    </button>
+    <button class="tab-btn active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Lançamentos
+    </button>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://cnsmkzozzanqzolwfiad.supabase.co';
+const SUPABASE_KEY='sb_publishable_72GUFLSx0Ttm27gRCm8BXg_tf_Fmwt1';
+
+async function api(path,opts={}){
+  const res=await fetch(SUPABASE_URL+'/rest/v1/'+path,{
+    headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':opts.prefer||'return=representation',...opts.headers},...opts
+  });
+  if(!res.ok) throw new Error(await res.text());
+  const t=await res.text(); return t?JSON.parse(t):null;
+}
+
+let todosOsPastos=[],lotesPorPasto={},lotesInfo={},pastoAtual=null;
+let modoEdicao=false,lancamentoEditandoId=null,voltarParaResumo=false;
+
+function hoje(){return new Date().toISOString().split('T')[0];}
+function formatarData(iso){const[y,m,d]=iso.split('-');return`${d}/${m}/${y}`;}
+
+async function init(){
+  const d=new Date();
+  document.getElementById('header-date').textContent=d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('resumo-date').textContent=d.toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('fil-data-resumo').value=hoje();
+  await carregarDados();
+}
+
+async function carregarDados(){
+  try{
+    const pastos=await api('pastos?status=eq.ativo&order=nome');
+    const lotes=await api('lotes?status=eq.ativo');
+    const vinculos=await api('lote_pasto?data_fim=is.null&select=pasto_id,lote_id');
+    lotes.forEach(l=>{lotesInfo[l.id]=l;});
+    lotesPorPasto={};
+    vinculos.forEach(v=>{if(!lotesPorPasto[v.pasto_id])lotesPorPasto[v.pasto_id]=[];lotesPorPasto[v.pasto_id].push(v.lote_id);});
+    todosOsPastos=pastos.filter(p=>lotesPorPasto[p.id]&&lotesPorPasto[p.id].length>0);
+    renderPastos(todosOsPastos);
+    // popular select de lote no filtro do resumo
+    const sel=document.getElementById('fil-lote-resumo');
+    lotes.forEach(l=>{const o=document.createElement('option');o.value=l.id;o.textContent=l.codigo;sel.appendChild(o);});
+  }catch(e){
+    document.getElementById('pasto-list').innerHTML='<div class="loading" style="color:#b85c00">Erro ao carregar. Verifique a conexão.</div>';
+  }
+}
+
+function renderPastos(lista){
+  const el=document.getElementById('pasto-list');
+  if(!lista.length){el.innerHTML='<div class="empty"><div class="empty-icon">🌿</div>Nenhum pasto encontrado.</div>';return;}
+  el.innerHTML=lista.map(p=>`<div class="pasto-item" onclick="abrirLancamento(${p.id},'${p.nome}')"><div class="pi-left"><span class="pasto-dot"></span><span class="pasto-nome">${p.nome}</span></div><span class="pasto-chevron">›</span></div>`).join('');
+}
+
+function filtrarPastos(){
+  const q=document.getElementById('busca-pasto').value.toLowerCase();
+  renderPastos(todosOsPastos.filter(p=>p.nome.toLowerCase().includes(q)));
+}
+
+function abrirLancamento(pastoId,pastoNome){
+  modoEdicao=false; lancamentoEditandoId=null; voltarParaResumo=false;
+  pastoAtual={id:pastoId,nome:pastoNome};
+  preencherFormLancamento(pastoId,pastoNome,null);
+  document.getElementById('edit-banner').style.display='none';
+  document.getElementById('btn-excluir').style.display='none';
+  document.getElementById('lanc-titulo').textContent='Novo lançamento';
+  document.getElementById('btn-confirmar').textContent='Confirmar lançamento';
+  document.getElementById('input-data').value=hoje();
+  document.getElementById('input-kg').value='';
+  showScreen('screen-lancamento');
+}
+
+function abrirEdicao(lanc){
+  modoEdicao=true; lancamentoEditandoId=lanc.id; voltarParaResumo=true;
+  const pasto=todosOsPastos.find(p=>p.id===lanc.pasto_id)||{id:lanc.pasto_id,nome:lanc.pastos?.nome||'—'};
+  pastoAtual=pasto;
+  preencherFormLancamento(pasto.id,pasto.nome,lanc.lote_id);
+  document.getElementById('edit-banner').style.display='block';
+  document.getElementById('btn-excluir').style.display='block';
+  document.getElementById('lanc-titulo').textContent='Editar lançamento';
+  document.getElementById('btn-confirmar').textContent='Salvar alterações';
+  document.getElementById('input-data').value=lanc.data;
+  document.getElementById('input-kg').value=lanc.qtd_kg;
+  document.getElementById('error-msg').style.display='none';
+  showScreen('screen-lancamento');
+}
+
+function preencherFormLancamento(pastoId,pastoNome,loteIdSelecionado){
+  document.getElementById('card-pasto-nome').textContent=pastoNome;
+  const loteIds=lotesPorPasto[pastoId]||[];
+  const sel=document.getElementById('input-lote');
+  sel.innerHTML='<option value="">Selecione o lote...</option>';
+  loteIds.forEach(lid=>{
+    const l=lotesInfo[lid];if(!l)return;
+    const opt=document.createElement('option');opt.value=lid;opt.textContent=`${l.codigo}${l.nome?' · '+l.nome:''} — ${l.qtd_animais} animais`;
+    if(lid===loteIdSelecionado)opt.selected=true;
+    sel.appendChild(opt);
+  });
+  if(loteIds.length===1&&!loteIdSelecionado){sel.value=loteIds[0];}
+  atualizarProduto();
+}
+
+function atualizarProduto(){
+  const lid=parseInt(document.getElementById('input-lote').value);
+  if(lid&&lotesInfo[lid]){
+    document.getElementById('input-produto').value=lotesInfo[lid].produto;
+    document.getElementById('card-lote-info').textContent=`${lotesInfo[lid].codigo}${lotesInfo[lid].nome?' · '+lotesInfo[lid].nome:''} · ${lotesInfo[lid].qtd_animais} animais`;
+  }else{
+    document.getElementById('input-produto').value='';
+    document.getElementById('card-lote-info').textContent='Selecione o lote abaixo';
+  }
+}
+
+async function confirmarLancamento(){
+  const data=document.getElementById('input-data').value;
+  const loteId=document.getElementById('input-lote').value;
+  const produto=document.getElementById('input-produto').value;
+  const kg=parseFloat(document.getElementById('input-kg').value);
+  const errEl=document.getElementById('error-msg');
+  errEl.style.display='none';
+  if(!loteId){errEl.textContent='Selecione o lote.';errEl.style.display='block';return;}
+  if(!kg||kg<=0){errEl.textContent='Informe a quantidade em kg.';errEl.style.display='block';return;}
+
+  const btn=document.getElementById('btn-confirmar');
+  btn.disabled=true; btn.textContent='Salvando...';
+
+  try{
+    if(modoEdicao&&lancamentoEditandoId){
+      await api(`lancamentos?id=eq.${lancamentoEditandoId}`,{method:'PATCH',prefer:'return=minimal',body:JSON.stringify({data,pasto_id:pastoAtual.id,lote_id:parseInt(loteId),produto,qtd_kg:kg})});
+      mostrarSucesso('✓','Atualizado!',`${pastoAtual.nome} · ${lotesInfo[loteId]?.codigo}<br>${kg} kg em ${formatarData(data)}`);
+    }else{
+      await api('lancamentos',{method:'POST',prefer:'return=minimal',body:JSON.stringify({data,pasto_id:pastoAtual.id,lote_id:parseInt(loteId),produto,qtd_kg:kg})});
+      mostrarSucesso('✓','Lançado!',`${pastoAtual.nome} · ${lotesInfo[loteId]?.codigo}<br>${kg} kg em ${formatarData(data)}`);
+    }
+  }catch(e){
+    errEl.textContent='Erro ao salvar. Tente novamente.';errEl.style.display='block';
+  }finally{
+    btn.disabled=false;
+    btn.textContent=modoEdicao?'Salvar alterações':'Confirmar lançamento';
+  }
+}
+
+async function excluirLancamento(){
+  if(!confirm('Excluir este lançamento?'))return;
+  const btn=document.getElementById('btn-excluir');
+  btn.disabled=true;btn.textContent='Excluindo...';
+  try{
+    await api(`lancamentos?id=eq.${lancamentoEditandoId}`,{method:'DELETE',prefer:'return=minimal'});
+    mostrarSucesso('🗑','Excluído','Lançamento removido com sucesso.');
+  }catch(e){
+    document.getElementById('error-msg').textContent='Erro ao excluir.';
+    document.getElementById('error-msg').style.display='block';
+  }finally{
+    btn.disabled=false;btn.textContent='Excluir lançamento';
+  }
+}
+
+function mostrarSucesso(icone,titulo,detalhe){
+  document.getElementById('sucesso-icone').textContent=icone;
+  document.getElementById('sucesso-titulo').textContent=titulo;
+  document.getElementById('sucesso-detalhe').innerHTML=detalhe;
+  showScreen('screen-sucesso');
+}
+
+async function renderResumo(){
+  const lista=document.getElementById('resumo-lista');
+  lista.innerHTML='<div class="loading">Carregando...</div>';
+  const filData=document.getElementById('fil-data-resumo').value||hoje();
+  const filLote=document.getElementById('fil-lote-resumo').value;
+  let query=`lancamentos?data=eq.${filData}&select=id,data,qtd_kg,produto,pasto_id,lote_id,criado_em,pastos(nome),lotes(codigo)&order=criado_em.desc`;
+  if(filLote) query+=`&lote_id=eq.${filLote}`;
+  try{
+    const dados=await api(query);
+    if(!dados.length){lista.innerHTML='<div class="empty"><div class="empty-icon">📋</div>Nenhum lançamento nesta data.</div>';return;}
+    lista.innerHTML='';
+    dados.forEach(d=>{
+      const h=new Date(d.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      const item=document.createElement('div');item.className='resumo-item';
+      item.innerHTML=`<div><div class="ri-pasto">${d.pastos?.nome||'—'}</div><div class="ri-lote">${d.lotes?.codigo||'—'} · ${d.produto}</div></div><div class="ri-right"><div style="text-align:right"><div class="ri-kg">${d.qtd_kg} kg</div><div class="ri-hora">${h}</div></div><button class="btn-edit" onclick='editarDaLista(${JSON.stringify(d)})'>✏ Editar</button></div>`;
+      lista.appendChild(item);
+    });
+  }catch(e){lista.innerHTML='<div class="loading" style="color:#b85c00">Erro ao carregar.</div>';}
+}
+
+function editarDaLista(lanc){
+  abrirEdicao(lanc);
+}
+
+function voltarDeLancamento(){
+  if(voltarParaResumo){showResumo();}else{showPastos();}
+}
+
+function showPastos(){showScreen('screen-pastos');}
+function showResumo(){renderResumo();showScreen('screen-resumo');}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+init();
+
+// Registrar Service Worker para instalação como PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log('SW registrado'))
+      .catch(err => console.warn('SW falhou:', err));
+  });
+}
+</script>
+</body>
+</html>
